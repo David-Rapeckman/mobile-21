@@ -1,20 +1,17 @@
 import React, { useState } from 'react';
-import styled from 'styled-components/native';
-import { Input, Button, Text } from 'react-native-elements';
+import { View, StyleSheet, Text } from 'react-native';
+import { Input, Button } from 'react-native-paper';
 import { useAuth } from '../contexts/AuthContext';
 import theme from '../styles/theme';
-import { ViewStyle } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 
-type LoginScreenProps = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'Login'>;
-};
+type LoginScreenProps = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
 const LoginScreen: React.FC = () => {
   const { signIn } = useAuth();
-  const navigation = useNavigation<LoginScreenProps['navigation']>();
+  const navigation = useNavigation<LoginScreenProps>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,7 +22,7 @@ const LoginScreen: React.FC = () => {
       setLoading(true);
       setError('');
       await signIn({ email, password });
-    } catch (err) {
+    } catch {
       setError('Email ou senha inválidos');
     } finally {
       setLoading(false);
@@ -33,106 +30,104 @@ const LoginScreen: React.FC = () => {
   };
 
   return (
-    <Container>
-      <Title>Login</Title>
-      
+    <View style={styles.container}>
+      <Text style={styles.title}>Login</Text>
+
       <Input
-        placeholder="Email"
+        label="Email"
+        mode="outlined"
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
         keyboardType="email-address"
-        containerStyle={styles.input}
+        style={styles.input}
       />
 
       <Input
-        placeholder="Senha"
+        label="Senha"
+        mode="outlined"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
-        containerStyle={styles.input}
+        style={styles.input}
       />
 
-      {error ? <ErrorText>{error}</ErrorText> : null}
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
       <Button
-        title="Entrar"
+        mode="contained"
         onPress={handleLogin}
         loading={loading}
-        containerStyle={styles.button as ViewStyle}
-        buttonStyle={styles.buttonStyle}
-      />
+        contentStyle={styles.buttonContent}
+        style={styles.button}
+      >
+        Entrar
+      </Button>
 
       <Button
-        title="Cadastrar Novo Paciente"
+        mode="outlined"
         onPress={() => navigation.navigate('Register')}
-        containerStyle={styles.registerButton as ViewStyle}
-        buttonStyle={styles.registerButtonStyle}
-      />
+        style={styles.registerButton}
+      >
+        Cadastrar Novo Paciente
+      </Button>
 
-      <Text style={styles.hint}>
-        Use as credenciais de exemplo:
-      </Text>
+      <Text style={styles.hint}>Use as credenciais de exemplo:</Text>
       <Text style={styles.credentials}>
         Admin: admin@example.com / 123456{'\n'}
         Médicos: joao@example.com, maria@example.com, pedro@example.com / 123456
       </Text>
-    </Container>
+    </View>
   );
 };
 
-const styles = {
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    justifyContent: 'center',
+    backgroundColor: theme.colors.background,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 30,
+    color: theme.colors.text,
+  },
   input: {
     marginBottom: 15,
+    backgroundColor: theme.colors.background,
+  },
+  buttonContent: {
+    paddingVertical: 12,
   },
   button: {
     marginTop: 10,
     width: '100%',
-  },
-  buttonStyle: {
     backgroundColor: theme.colors.primary,
-    paddingVertical: 12,
   },
   registerButton: {
     marginTop: 10,
     width: '100%',
+    borderColor: theme.colors.secondary,
   },
-  registerButtonStyle: {
-    backgroundColor: theme.colors.secondary,
-    paddingVertical: 12,
+  errorText: {
+    color: theme.colors.error,
+    textAlign: 'center',
+    marginBottom: 10,
   },
   hint: {
     marginTop: 20,
-    textAlign: 'center' as const,
+    textAlign: 'center',
     color: theme.colors.text,
   },
   credentials: {
     marginTop: 10,
-    textAlign: 'center' as const,
+    textAlign: 'center',
     color: theme.colors.text,
     fontSize: 12,
   },
-};
+});
 
-const Container = styled.View`
-  flex: 1;
-  padding: 20px;
-  justify-content: center;
-  background-color: ${theme.colors.background};
-`;
-
-const Title = styled.Text`
-  font-size: 24px;
-  font-weight: bold;
-  text-align: center;
-  margin-bottom: 30px;
-  color: ${theme.colors.text};
-`;
-
-const ErrorText = styled.Text`
-  color: ${theme.colors.error};
-  text-align: center;
-  margin-bottom: 10px;
-`;
-
-export default LoginScreen; 
+export default LoginScreen;

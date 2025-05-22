@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components/native';
-import { Button, ListItem } from 'react-native-elements';
+import { Button } from 'react-native-paper';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -8,13 +8,11 @@ import { RootStackParamList } from '../types/navigation';
 import theme from '../styles/theme';
 import Header from '../components/Header';
 
-type ProfileScreenProps = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'Profile'>;
-};
+type ProfileScreenProps = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
 
 const ProfileScreen: React.FC = () => {
   const { user, signOut } = useAuth();
-  const navigation = useNavigation<ProfileScreenProps['navigation']>();
+  const navigation = useNavigation<ProfileScreenProps>();
 
   const getRoleText = (role: string) => {
     switch (role) {
@@ -42,25 +40,29 @@ const ProfileScreen: React.FC = () => {
           <RoleBadge role={user?.role || ''}>
             <RoleText>{getRoleText(user?.role || '')}</RoleText>
           </RoleBadge>
-          
+
           {user?.role === 'doctor' && (
             <SpecialtyText>Especialidade: {user?.specialty}</SpecialtyText>
           )}
         </ProfileCard>
 
         <Button
-          title="Voltar"
+          mode="contained"
           onPress={() => navigation.goBack()}
-          containerStyle={styles.button as ViewStyle}
-          buttonStyle={styles.buttonStyle}
-        />
+          style={styles.button}
+          contentStyle={styles.buttonContent}
+        >
+          Voltar
+        </Button>
 
         <Button
-          title="Sair"
+          mode="contained"
           onPress={signOut}
-          containerStyle={styles.button as ViewStyle}
-          buttonStyle={styles.logoutButton}
-        />
+          style={[styles.button, styles.logoutButton]}
+          contentStyle={styles.buttonContent}
+        >
+          Sair
+        </Button>
       </ScrollView>
     </Container>
   );
@@ -74,13 +76,11 @@ const styles = {
     marginBottom: 20,
     width: '100%',
   },
-  buttonStyle: {
-    backgroundColor: theme.colors.primary,
+  buttonContent: {
     paddingVertical: 12,
   },
   logoutButton: {
     backgroundColor: theme.colors.error,
-    paddingVertical: 12,
   },
 };
 

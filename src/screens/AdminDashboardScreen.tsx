@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import styled from 'styled-components/native';
 import { ScrollView, ViewStyle, TextStyle } from 'react-native';
-import { Button, ListItem, Text } from 'react-native-elements';
+import { Button, Text } from 'react-native-paper';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -11,9 +11,10 @@ import theme from '../styles/theme';
 import Header from '../components/Header';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-type AdminDashboardScreenProps = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'AdminDashboard'>;
-};
+type AdminDashboardScreenProps = NativeStackNavigationProp<
+  RootStackParamList,
+  'AdminDashboard'
+>;
 
 interface Appointment {
   id: string;
@@ -31,10 +32,6 @@ interface User {
   name: string;
   email: string;
   role: 'admin' | 'doctor' | 'patient';
-}
-
-interface StyledProps {
-  status: string;
 }
 
 const getStatusColor = (status: string) => {
@@ -61,56 +58,56 @@ const getStatusText = (status: string) => {
 
 const AdminDashboardScreen: React.FC = () => {
   const { user, signOut } = useAuth();
-  const navigation = useNavigation<AdminDashboardScreenProps['navigation']>();
+  const navigation = useNavigation<AdminDashboardScreenProps>();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
-      // Carrega consultas
       const storedAppointments = await AsyncStorage.getItem('@MedicalApp:appointments');
       if (storedAppointments) {
-        const allAppointments: Appointment[] = JSON.parse(storedAppointments);
-        setAppointments(allAppointments);
+        setAppointments(JSON.parse(storedAppointments));
+      } else {
+        setAppointments([]);
       }
 
-      // Carrega usuários
       const storedUsers = await AsyncStorage.getItem('@MedicalApp:users');
       if (storedUsers) {
-        const allUsers: User[] = JSON.parse(storedUsers);
-        setUsers(allUsers);
+        setUsers(JSON.parse(storedUsers));
+      } else {
+        setUsers([]);
       }
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
+    } catch {
+      setAppointments([]);
+      setUsers([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // Carrega os dados quando a tela estiver em foco
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       loadData();
-    }, [])
+    }, [loadData])
   );
 
-  const handleUpdateStatus = async (appointmentId: string, newStatus: 'confirmed' | 'cancelled') => {
+  const handleUpdateStatus = async (
+    appointmentId: string,
+    newStatus: 'confirmed' | 'cancelled'
+  ) => {
     try {
       const storedAppointments = await AsyncStorage.getItem('@MedicalApp:appointments');
       if (storedAppointments) {
         const allAppointments: Appointment[] = JSON.parse(storedAppointments);
-        const updatedAppointments = allAppointments.map(appointment => {
-          if (appointment.id === appointmentId) {
-            return { ...appointment, status: newStatus };
-          }
-          return appointment;
-        });
+        const updatedAppointments = allAppointments.map((appointment) =>
+          appointment.id === appointmentId ? { ...appointment, status: newStatus } : appointment
+        );
         await AsyncStorage.setItem('@MedicalApp:appointments', JSON.stringify(updatedAppointments));
-        loadData(); // Recarrega os dados
+        loadData();
       }
-    } catch (error) {
-      console.error('Erro ao atualizar status:', error);
+    } catch {
+      // silent error
     }
   };
 
@@ -121,18 +118,22 @@ const AdminDashboardScreen: React.FC = () => {
         <Title>Painel Administrativo</Title>
 
         <Button
-          title="Gerenciar Usuários"
+          mode="contained"
           onPress={() => navigation.navigate('UserManagement')}
-          containerStyle={styles.button as ViewStyle}
-          buttonStyle={styles.buttonStyle}
-        />
+          style={styles.button}
+          contentStyle={styles.buttonContent}
+        >
+          Gerenciar Usuários
+        </Button>
 
         <Button
-          title="Meu Perfil"
+          mode="contained"
           onPress={() => navigation.navigate('Profile')}
-          containerStyle={styles.button as ViewStyle}
-          buttonStyle={styles.buttonStyle}
-        />
+          style={styles.button}
+          contentStyle={styles.buttonContent}
+        >
+          Meu Perfil
+        </Button>
 
         <SectionTitle>Últimas Consultas</SectionTitle>
         {loading ? (
@@ -142,48 +143,46 @@ const AdminDashboardScreen: React.FC = () => {
         ) : (
           appointments.map((appointment) => (
             <AppointmentCard key={appointment.id}>
-              <ListItem.Content>
-                <ListItem.Title style={styles.doctorName as TextStyle}>
-                  {appointment.doctorName}
-                </ListItem.Title>
-                <ListItem.Subtitle style={styles.specialty as TextStyle}>
-                  {appointment.specialty}
-                </ListItem.Subtitle>
-                <Text style={styles.dateTime as TextStyle}>
-                  {appointment.date} às {appointment.time}
-                </Text>
-                <StatusBadge status={appointment.status}>
-                  <StatusText status={appointment.status}>
-                    {getStatusText(appointment.status)}
-                  </StatusText>
-                </StatusBadge>
-                {appointment.status === 'pending' && (
-                  <ButtonContainer>
-                    <Button
-                      title="Confirmar"
-                      onPress={() => handleUpdateStatus(appointment.id, 'confirmed')}
-                      containerStyle={styles.actionButton as ViewStyle}
-                      buttonStyle={styles.confirmButton}
-                    />
-                    <Button
-                      title="Cancelar"
-                      onPress={() => handleUpdateStatus(appointment.id, 'cancelled')}
-                      containerStyle={styles.actionButton as ViewStyle}
-                      buttonStyle={styles.cancelButton}
-                    />
-                  </ButtonContainer>
-                )}
-              </ListItem.Content>
+              <DoctorName style={styles.doctorName}>{appointment.doctorName}</DoctorName>
+              <Specialty style={styles.specialty}>{appointment.specialty}</Specialty>
+              <DateTime style={styles.dateTime}>
+                {appointment.date} às {appointment.time}
+              </DateTime>
+              <StatusBadge status={appointment.status}>
+                <StatusText status={appointment.status}>{getStatusText(appointment.status)}</StatusText>
+              </StatusBadge>
+              {appointment.status === 'pending' && (
+                <ButtonContainer>
+                  <Button
+                    mode="contained"
+                    onPress={() => handleUpdateStatus(appointment.id, 'confirmed')}
+                    style={[styles.actionButton, styles.confirmButton]}
+                    contentStyle={styles.buttonContent}
+                  >
+                    Confirmar
+                  </Button>
+                  <Button
+                    mode="contained"
+                    onPress={() => handleUpdateStatus(appointment.id, 'cancelled')}
+                    style={[styles.actionButton, styles.cancelButton]}
+                    contentStyle={styles.buttonContent}
+                  >
+                    Cancelar
+                  </Button>
+                </ButtonContainer>
+              )}
             </AppointmentCard>
           ))
         )}
 
         <Button
-          title="Sair"
+          mode="contained"
           onPress={signOut}
-          containerStyle={styles.button as ViewStyle}
-          buttonStyle={styles.logoutButton}
-        />
+          style={[styles.button, styles.logoutButton]}
+          contentStyle={styles.buttonContent}
+        >
+          Sair
+        </Button>
       </ScrollView>
     </Container>
   );
@@ -196,42 +195,38 @@ const styles = {
   button: {
     marginBottom: 20,
     width: '100%',
-  },
-  buttonStyle: {
-    backgroundColor: theme.colors.primary,
+  } as ViewStyle,
+  buttonContent: {
     paddingVertical: 12,
-  },
+  } as ViewStyle,
   logoutButton: {
     backgroundColor: theme.colors.error,
-    paddingVertical: 12,
-  },
+  } as ViewStyle,
   actionButton: {
     marginTop: 8,
     width: '48%',
-  },
+  } as ViewStyle,
   confirmButton: {
     backgroundColor: theme.colors.success,
-    paddingVertical: 8,
-  },
+  } as ViewStyle,
   cancelButton: {
     backgroundColor: theme.colors.error,
-    paddingVertical: 8,
-  },
+  } as ViewStyle,
   doctorName: {
     fontSize: 18,
     fontWeight: '700',
     color: theme.colors.text,
-  },
+  } as TextStyle,
   specialty: {
     fontSize: 14,
     color: theme.colors.text,
     marginTop: 4,
-  },
+  } as TextStyle,
   dateTime: {
     fontSize: 14,
     color: theme.colors.text,
     marginTop: 4,
-  },
+  } as TextStyle,
 };
 
 const Container = styled.View`
@@ -255,7 +250,7 @@ const SectionTitle = styled.Text`
   margin-top: 10px;
 `;
 
-const AppointmentCard = styled(ListItem)`
+const AppointmentCard = styled.View`
   background-color: ${theme.colors.background};
   border-radius: 8px;
   margin-bottom: 10px;
@@ -263,6 +258,10 @@ const AppointmentCard = styled(ListItem)`
   border-width: 1px;
   border-color: ${theme.colors.border};
 `;
+
+const DoctorName = styled.Text``;
+const Specialty = styled.Text``;
+const DateTime = styled.Text``;
 
 const LoadingText = styled.Text`
   text-align: center;
@@ -278,16 +277,16 @@ const EmptyText = styled.Text`
   margin-top: 20px;
 `;
 
-const StatusBadge = styled.View<StyledProps>`
-  background-color: ${(props: StyledProps) => getStatusColor(props.status) + '20'};
+const StatusBadge = styled.View<{ status: string }>`
+  background-color: ${(props: { status: string }) => getStatusColor(props.status) + '20'};
   padding: 4px 8px;
   border-radius: 4px;
   align-self: flex-start;
   margin-top: 8px;
 `;
 
-const StatusText = styled.Text<StyledProps>`
-  color: ${(props: StyledProps) => getStatusColor(props.status)};
+const StatusText = styled.Text<{ status: string }>`
+  color: ${(props: { status: string }) => getStatusColor(props.status)};
   font-size: 12px;
   font-weight: 500;
 `;

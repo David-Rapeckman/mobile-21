@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components/native';
 import { ScrollView, ViewStyle } from 'react-native';
-import { Button, Input } from 'react-native-elements';
+import { Button, TextInput } from 'react-native-paper';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -12,9 +12,10 @@ import DoctorList from '../components/DoctorList';
 import TimeSlotList from '../components/TimeSlotList';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-type CreateAppointmentScreenProps = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'CreateAppointment'>;
-};
+type CreateAppointmentScreenProps = NativeStackNavigationProp<
+  RootStackParamList,
+  'CreateAppointment'
+>;
 
 interface Appointment {
   id: string;
@@ -35,7 +36,6 @@ interface Doctor {
   image: string;
 }
 
-// Lista de médicos disponíveis
 const availableDoctors: Doctor[] = [
   {
     id: '1',
@@ -71,7 +71,7 @@ const availableDoctors: Doctor[] = [
 
 const CreateAppointmentScreen: React.FC = () => {
   const { user } = useAuth();
-  const navigation = useNavigation<CreateAppointmentScreenProps['navigation']>();
+  const navigation = useNavigation<CreateAppointmentScreenProps>();
   const [date, setDate] = useState('');
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
@@ -79,20 +79,16 @@ const CreateAppointmentScreen: React.FC = () => {
   const [error, setError] = useState('');
 
   const handleCreateAppointment = async () => {
+    setError('');
+    if (!date || !selectedTime || !selectedDoctor) {
+      setError('Por favor, preencha a data e selecione um médico e horário');
+      return;
+    }
+    setLoading(true);
     try {
-      setLoading(true);
-      setError('');
-
-      if (!date || !selectedTime || !selectedDoctor) {
-        setError('Por favor, preencha a data e selecione um médico e horário');
-        return;
-      }
-
-      // Recupera consultas existentes
       const storedAppointments = await AsyncStorage.getItem('@MedicalApp:appointments');
       const appointments: Appointment[] = storedAppointments ? JSON.parse(storedAppointments) : [];
 
-      // Cria nova consulta
       const newAppointment: Appointment = {
         id: Date.now().toString(),
         patientId: user?.id || '',
@@ -105,15 +101,12 @@ const CreateAppointmentScreen: React.FC = () => {
         status: 'pending',
       };
 
-      // Adiciona nova consulta à lista
       appointments.push(newAppointment);
-
-      // Salva lista atualizada
       await AsyncStorage.setItem('@MedicalApp:appointments', JSON.stringify(appointments));
 
       alert('Consulta agendada com sucesso!');
       navigation.goBack();
-    } catch (err) {
+    } catch {
       setError('Erro ao agendar consulta. Tente novamente.');
     } finally {
       setLoading(false);
@@ -126,19 +119,17 @@ const CreateAppointmentScreen: React.FC = () => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Title>Agendar Consulta</Title>
 
-        <Input
-          placeholder="Data (DD/MM/AAAA)"
+        <TextInput
+          label="Data (DD/MM/AAAA)"
           value={date}
           onChangeText={setDate}
-          containerStyle={styles.input}
+          style={styles.input}
           keyboardType="numeric"
+          mode="outlined"
         />
 
         <SectionTitle>Selecione um Horário</SectionTitle>
-        <TimeSlotList
-          onSelectTime={setSelectedTime}
-          selectedTime={selectedTime}
-        />
+        <TimeSlotList onSelectTime={setSelectedTime} selectedTime={selectedTime} />
 
         <SectionTitle>Selecione um Médico</SectionTitle>
         <DoctorList
@@ -150,19 +141,23 @@ const CreateAppointmentScreen: React.FC = () => {
         {error ? <ErrorText>{error}</ErrorText> : null}
 
         <Button
-          title="Agendar"
+          mode="contained"
           onPress={handleCreateAppointment}
           loading={loading}
-          containerStyle={styles.button as ViewStyle}
-          buttonStyle={styles.buttonStyle}
-        />
+          style={styles.button}
+          contentStyle={styles.buttonContent}
+        >
+          Agendar
+        </Button>
 
         <Button
-          title="Cancelar"
+          mode="outlined"
           onPress={() => navigation.goBack()}
-          containerStyle={styles.button as ViewStyle}
-          buttonStyle={styles.cancelButton}
-        />
+          style={styles.cancelButton}
+          contentStyle={styles.buttonContent}
+        >
+          Cancelar
+        </Button>
       </ScrollView>
     </Container>
   );
@@ -177,16 +172,17 @@ const styles = {
   },
   button: {
     marginTop: 10,
-    width: '100%',
-  },
-  buttonStyle: {
+    width: '100%' as `${number}%`,
     backgroundColor: theme.colors.primary,
-    paddingVertical: 12,
-  },
+  } as ViewStyle,
   cancelButton: {
-    backgroundColor: theme.colors.secondary,
+    marginTop: 10,
+    width: '100%' as `${number}%`,
+    borderColor: theme.colors.secondary,
+  } as ViewStyle,
+  buttonContent: {
     paddingVertical: 12,
-  },
+  } as ViewStyle,
 };
 
 const Container = styled.View`

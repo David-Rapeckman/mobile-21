@@ -3,7 +3,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authService } from '../services/auth';
 import { User, LoginCredentials, RegisterData, AuthContextData } from '../types/auth';
 
-// Chaves de armazenamento
 const STORAGE_KEYS = {
   USER: '@MedicalApp:user',
   TOKEN: '@MedicalApp:token',
@@ -16,30 +15,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadStoredUser();
-    loadRegisteredUsers();
-  }, []);
-
-  const loadStoredUser = async () => {
-    try {
-      const storedUser = await authService.getStoredUser();
-      if (storedUser) {
-        setUser(storedUser);
+    const loadData = async () => {
+      try {
+        await authService.loadRegisteredUsers();
+        const storedUser = await authService.getStoredUser();
+        if (storedUser) {
+          setUser(storedUser);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados de autenticação:', error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Erro ao carregar usuário:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadRegisteredUsers = async () => {
-    try {
-      await authService.loadRegisteredUsers();
-    } catch (error) {
-      console.error('Erro ao carregar usuários registrados:', error);
-    }
-  };
+    };
+    loadData();
+  }, []);
 
   const signIn = async (credentials: LoginCredentials) => {
     try {
@@ -88,3 +78,4 @@ export const useAuth = () => {
   }
   return context;
 };
+  

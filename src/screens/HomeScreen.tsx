@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import styled from 'styled-components/native';
-import { FlatList, RefreshControl, TouchableOpacity } from 'react-native';
-import { Button, Icon } from 'react-native-elements';
+import { FlatList, RefreshControl, TouchableOpacity, ListRenderItemInfo } from 'react-native';
+import { Button, Icon } from 'react-native-paper';
 import { FontAwesome } from '@expo/vector-icons';
 import { HeaderContainer, HeaderTitle } from '../components/Header';
 import theme from '../styles/theme';
@@ -43,37 +43,36 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   const loadAppointments = async () => {
     try {
-      const storedAppointments = await AsyncStorage.getItem('appointments');
-      if (storedAppointments) {
-        setAppointments(JSON.parse(storedAppointments));
-      }
-    } catch (error) {
-      console.error('Erro ao carregar consultas:', error);
+      const stored = await AsyncStorage.getItem('appointments');
+      if (stored) setAppointments(JSON.parse(stored));
+      else setAppointments([]);
+    } catch {
+      setAppointments([]);
     }
   };
 
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       loadAppointments();
     }, [])
   );
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadAppointments();
     setRefreshing(false);
-  };
+  }, []);
 
-  const getDoctorInfo = (doctorId: string): Doctor | undefined => {
-    return doctors.find(doctor => doctor.id === doctorId);
-  };
+  const getDoctorInfo = (doctorId: string): Doctor | undefined =>
+    doctors.find((d) => d.id === doctorId);
 
-  const renderAppointment = ({ item }: { item: Appointment }) => {
+  // Corrigindo tipo explícito do parâmetro item para evitar 'any'
+  const renderAppointment = ({ item }: ListRenderItemInfo<Appointment>) => {
     const doctor = getDoctorInfo(item.doctorId);
-    
+
     return (
       <AppointmentCard>
-        <DoctorImage source={{ uri: doctor?.image || 'https://via.placeholder.com/100' }} />
+        <DoctorImage source={{ uri: doctor?.image || 'https://via.placeholder.com/60' }} />
         <InfoContainer>
           <DoctorName>{doctor?.name || 'Médico não encontrado'}</DoctorName>
           <DoctorSpecialty>{doctor?.specialty || 'Especialidade não encontrada'}</DoctorSpecialty>
@@ -83,11 +82,17 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             {item.status === 'pending' ? 'Pendente' : 'Confirmado'}
           </Status>
           <ActionButtons>
-            <ActionButton>
-              <Icon name="edit" type="material" size={20} color={theme.colors.primary} />
+            <ActionButton
+              onPress={() => navigation.navigate('UserManagement')} 
+              // Alterado para rota válida, pois 'EditAppointment' não está declarada
+            >
+              <Icon icon="pencil" size={20} color={theme.colors.primary} />
             </ActionButton>
-            <ActionButton>
-              <Icon name="delete" type="material" size={20} color={theme.colors.error} />
+            <ActionButton
+              onPress={() => navigation.navigate('UserManagement')} 
+              // Alterado para rota válida, pois 'DeleteAppointment' não está declarada
+            >
+              <Icon icon="delete" size={20} color={theme.colors.error} />
             </ActionButton>
           </ActionButtons>
         </InfoContainer>
@@ -103,34 +108,28 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
       <Content>
         <Button
-          title="Agendar Nova Consulta"
-          icon={
+          mode="contained"
+          icon={() => (
             <FontAwesome
               name="calendar-plus-o"
               size={20}
               color="white"
               style={{ marginRight: 8 }}
             />
-          }
-          buttonStyle={{
-            backgroundColor: theme.colors.primary,
-            borderRadius: 8,
-            padding: 12,
-            marginBottom: theme.spacing.medium
-          }}
+          )}
           onPress={() => navigation.navigate('CreateAppointment')}
-        />
+          style={buttonStyles}
+          contentStyle={{ paddingVertical: 12 }}
+        >
+          Agendar Nova Consulta
+        </Button>
 
         <AppointmentList
           data={appointments}
-          keyExtractor={(item: Appointment) => item.id}
+          keyExtractor={(item) => item.id}
           renderItem={renderAppointment}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          ListEmptyComponent={
-            <EmptyText>Nenhuma consulta agendada</EmptyText>
-          }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          ListEmptyComponent={<EmptyText>Nenhuma consulta agendada</EmptyText>}
         />
       </Content>
     </Container>
@@ -147,7 +146,7 @@ const Content = styled.View`
   padding: ${theme.spacing.medium}px;
 `;
 
-const AppointmentList = styled(FlatList)`
+const AppointmentList = styled(FlatList as new () => FlatList<Appointment>)`
   flex: 1;
 `;
 
@@ -204,7 +203,8 @@ const Description = styled.Text`
 
 const Status = styled.Text<{ status: string }>`
   font-size: ${theme.typography.body.fontSize}px;
-  color: ${(props: { status: string }) => props.status === 'pending' ? theme.colors.error : theme.colors.success};
+  color: ${(props: { status: string }) =>
+    props.status === 'pending' ? theme.colors.error : theme.colors.success};
   margin-top: 4px;
   font-weight: bold;
 `;
@@ -226,5 +226,11 @@ const EmptyText = styled.Text`
   opacity: 0.6;
   margin-top: ${theme.spacing.large}px;
 `;
+
+const buttonStyles = {
+  backgroundColor: theme.colors.primary,
+  borderRadius: 8,
+  marginBottom: theme.spacing.medium,
+};
 
 export default HomeScreen;

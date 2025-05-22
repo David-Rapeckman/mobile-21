@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components/native';
-import { Input, Button, Text } from 'react-native-elements';
+import { TextInput, Button, Text } from 'react-native-paper';
 import { useAuth } from '../contexts/AuthContext';
 import theme from '../styles/theme';
 import { ViewStyle } from 'react-native';
@@ -8,13 +8,11 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 
-type RegisterScreenProps = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'Register'>;
-};
+type RegisterScreenProps = NativeStackNavigationProp<RootStackParamList, 'Register'>;
 
 const RegisterScreen: React.FC = () => {
   const { register } = useAuth();
-  const navigation = useNavigation<RegisterScreenProps['navigation']>();
+  const navigation = useNavigation<RegisterScreenProps>();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,24 +20,16 @@ const RegisterScreen: React.FC = () => {
   const [error, setError] = useState('');
 
   const handleRegister = async () => {
+    setError('');
+    if (!name || !email || !password) {
+      setError('Por favor, preencha todos os campos');
+      return;
+    }
+    setLoading(true);
     try {
-      setLoading(true);
-      setError('');
-
-      if (!name || !email || !password) {
-        setError('Por favor, preencha todos os campos');
-        return;
-      }
-
-      await register({
-        name,
-        email,
-        password,
-      });
-
-      // Após o registro bem-sucedido, navega para o login
+      await register({ name, email, password });
       navigation.navigate('Login');
-    } catch (err) {
+    } catch {
       setError('Erro ao criar conta. Tente novamente.');
     } finally {
       setLoading(false);
@@ -49,48 +39,55 @@ const RegisterScreen: React.FC = () => {
   return (
     <Container>
       <Title>Cadastro de Paciente</Title>
-      
-      <Input
-        placeholder="Nome completo"
+
+      <TextInput
+        label="Nome completo"
         value={name}
         onChangeText={setName}
         autoCapitalize="words"
-        containerStyle={styles.input}
+        style={styles.input}
+        mode="outlined"
       />
 
-      <Input
-        placeholder="Email"
+      <TextInput
+        label="Email"
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
         keyboardType="email-address"
-        containerStyle={styles.input}
+        style={styles.input}
+        mode="outlined"
       />
 
-      <Input
-        placeholder="Senha"
+      <TextInput
+        label="Senha"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
-        containerStyle={styles.input}
+        style={styles.input}
+        mode="outlined"
       />
 
       {error ? <ErrorText>{error}</ErrorText> : null}
 
       <Button
-        title="Cadastrar"
+        mode="contained"
         onPress={handleRegister}
         loading={loading}
-        containerStyle={styles.button as ViewStyle}
-        buttonStyle={styles.buttonStyle}
-      />
+        style={styles.button}
+        contentStyle={styles.buttonContent}
+      >
+        Cadastrar
+      </Button>
 
       <Button
-        title="Voltar para Login"
+        mode="outlined"
         onPress={() => navigation.navigate('Login')}
-        containerStyle={styles.backButton as ViewStyle}
-        buttonStyle={styles.backButtonStyle}
-      />
+        style={styles.backButton}
+        contentStyle={styles.buttonContent}
+      >
+        Voltar para Login
+      </Button>
     </Container>
   );
 };
@@ -98,23 +95,20 @@ const RegisterScreen: React.FC = () => {
 const styles = {
   input: {
     marginBottom: 15,
-  },
+  } as ViewStyle,
   button: {
     marginTop: 10,
     width: '100%',
-  },
-  buttonStyle: {
     backgroundColor: theme.colors.primary,
-    paddingVertical: 12,
-  },
+  } as ViewStyle,
   backButton: {
     marginTop: 10,
     width: '100%',
-  },
-  backButtonStyle: {
-    backgroundColor: theme.colors.secondary,
+    borderColor: theme.colors.secondary,
+  } as ViewStyle,
+  buttonContent: {
     paddingVertical: 12,
-  },
+  } as ViewStyle,
 };
 
 const Container = styled.View`

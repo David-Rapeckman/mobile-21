@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import styled from 'styled-components/native';
 import { ScrollView, ViewStyle, TextStyle } from 'react-native';
-import { Button, ListItem, Text } from 'react-native-elements';
+import { Button, Text } from 'react-native-paper';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -11,9 +11,10 @@ import theme from '../styles/theme';
 import Header from '../components/Header';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-type PatientDashboardScreenProps = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'PatientDashboard'>;
-};
+type PatientDashboardScreenProps = NativeStackNavigationProp<
+  RootStackParamList,
+  'PatientDashboard'
+>;
 
 interface Appointment {
   id: string;
@@ -55,11 +56,11 @@ const getStatusText = (status: string) => {
 
 const PatientDashboardScreen: React.FC = () => {
   const { user, signOut } = useAuth();
-  const navigation = useNavigation<PatientDashboardScreenProps['navigation']>();
+  const navigation = useNavigation<PatientDashboardScreenProps>();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadAppointments = async () => {
+  const loadAppointments = useCallback(async () => {
     try {
       const storedAppointments = await AsyncStorage.getItem('@MedicalApp:appointments');
       if (storedAppointments) {
@@ -68,19 +69,20 @@ const PatientDashboardScreen: React.FC = () => {
           (appointment) => appointment.patientId === user?.id
         );
         setAppointments(userAppointments);
+      } else {
+        setAppointments([]);
       }
-    } catch (error) {
-      console.error('Erro ao carregar consultas:', error);
+    } catch {
+      setAppointments([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
-  // Carrega as consultas quando a tela estiver em foco
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       loadAppointments();
-    }, [])
+    }, [loadAppointments])
   );
 
   return (
@@ -90,18 +92,22 @@ const PatientDashboardScreen: React.FC = () => {
         <Title>Minhas Consultas</Title>
 
         <Button
-          title="Agendar Nova Consulta"
+          mode="contained"
           onPress={() => navigation.navigate('CreateAppointment')}
-          containerStyle={styles.button as ViewStyle}
-          buttonStyle={styles.buttonStyle}
-        />
+          style={styles.button}
+          contentStyle={styles.buttonContent}
+        >
+          Agendar Nova Consulta
+        </Button>
 
         <Button
-          title="Meu Perfil"
+          mode="contained"
           onPress={() => navigation.navigate('Profile')}
-          containerStyle={styles.button as ViewStyle}
-          buttonStyle={styles.buttonStyle}
-        />
+          style={styles.button}
+          contentStyle={styles.buttonContent}
+        >
+          Meu Perfil
+        </Button>
 
         {loading ? (
           <LoadingText>Carregando consultas...</LoadingText>
@@ -110,35 +116,31 @@ const PatientDashboardScreen: React.FC = () => {
         ) : (
           appointments.map((appointment) => (
             <AppointmentCard key={appointment.id}>
-              <ListItem.Content>
-                <ListItem.Title style={styles.patientName as TextStyle}>
-                  Paciente: {appointment.patientName}
-                </ListItem.Title>
-                <ListItem.Subtitle style={styles.dateTime as TextStyle}>
-                  {appointment.date} às {appointment.time}
-                </ListItem.Subtitle>
-                <Text style={styles.doctorName as TextStyle}>
-                  {appointment.doctorName}
-                </Text>
-                <Text style={styles.specialty as TextStyle}>
-                  {appointment.specialty}
-                </Text>
-                <StatusBadge status={appointment.status}>
-                  <StatusText status={appointment.status}>
-                    {getStatusText(appointment.status)}
-                  </StatusText>
-                </StatusBadge>
-              </ListItem.Content>
+              <PatientName style={styles.patientName}>
+                Paciente: {appointment.patientName}
+              </PatientName>
+              <DateTime style={styles.dateTime}>
+                {appointment.date} às {appointment.time}
+              </DateTime>
+              <DoctorName style={styles.doctorName}>{appointment.doctorName}</DoctorName>
+              <Specialty style={styles.specialty}>{appointment.specialty}</Specialty>
+              <StatusBadge status={appointment.status}>
+                <StatusText status={appointment.status}>
+                  {getStatusText(appointment.status)}
+                </StatusText>
+              </StatusBadge>
             </AppointmentCard>
           ))
         )}
 
         <Button
-          title="Sair"
+          mode="contained"
           onPress={signOut}
-          containerStyle={styles.button as ViewStyle}
-          buttonStyle={styles.logoutButton}
-        />
+          style={[styles.button, styles.logoutButton]}
+          contentStyle={styles.buttonContent}
+        >
+          Sair
+        </Button>
       </ScrollView>
     </Container>
   );
@@ -151,35 +153,33 @@ const styles = {
   button: {
     marginBottom: 20,
     width: '100%',
-  },
-  buttonStyle: {
-    backgroundColor: theme.colors.primary,
+  } as ViewStyle,
+  buttonContent: {
     paddingVertical: 12,
-  },
+  } as ViewStyle,
   logoutButton: {
     backgroundColor: theme.colors.error,
-    paddingVertical: 12,
-  },
+  } as ViewStyle,
   doctorName: {
     fontSize: 18,
     fontWeight: '700',
     color: theme.colors.text,
-  },
+  } as TextStyle,
   specialty: {
     fontSize: 14,
     color: theme.colors.text,
     marginTop: 4,
-  },
+  } as TextStyle,
   dateTime: {
     fontSize: 14,
     color: theme.colors.text,
     marginTop: 4,
-  },
+  } as TextStyle,
   patientName: {
     fontSize: 16,
     fontWeight: '700',
     color: theme.colors.text,
-  },
+  } as TextStyle,
 };
 
 const Container = styled.View`
@@ -195,7 +195,7 @@ const Title = styled.Text`
   text-align: center;
 `;
 
-const AppointmentCard = styled(ListItem)`
+const AppointmentCard = styled.View`
   background-color: ${theme.colors.background};
   border-radius: 8px;
   margin-bottom: 10px;
@@ -203,6 +203,11 @@ const AppointmentCard = styled(ListItem)`
   border-width: 1px;
   border-color: ${theme.colors.border};
 `;
+
+const PatientName = styled.Text``;
+const DateTime = styled.Text``;
+const DoctorName = styled.Text``;
+const Specialty = styled.Text``;
 
 const LoadingText = styled.Text`
   text-align: center;
@@ -219,7 +224,7 @@ const EmptyText = styled.Text`
 `;
 
 const StatusBadge = styled.View<StyledProps>`
-  background-color: ${(props: StyledProps) => getStatusColor(props.status) + '20'};
+  background-color: ${(props) => getStatusColor(props.status) + '20'};
   padding: 4px 8px;
   border-radius: 4px;
   align-self: flex-start;
@@ -227,7 +232,7 @@ const StatusBadge = styled.View<StyledProps>`
 `;
 
 const StatusText = styled.Text<StyledProps>`
-  color: ${(props: StyledProps) => getStatusColor(props.status)};
+  color: ${(props) => getStatusColor(props.status)};
   font-size: 12px;
   font-weight: 500;
 `;
