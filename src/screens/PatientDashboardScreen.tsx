@@ -223,16 +223,16 @@ const EmptyText = styled.Text`
   margin-top: 20px;
 `;
 
-const StatusBadge = styled.View<StyledProps>`
-  background-color: ${(props) => getStatusColor(props.status) + '20'};
+const StatusBadge = styled.View<{ status: string }>`
+  background-color: ${(props: { status: string }) => getStatusColor(props.status) + '20'};
   padding: 4px 8px;
   border-radius: 4px;
   align-self: flex-start;
   margin-top: 8px;
 `;
 
-const StatusText = styled.Text<StyledProps>`
-  color: ${(props) => getStatusColor(props.status)};
+const StatusText = styled.Text<{ status: string }>`
+  color: ${(props: { status: string }) => getStatusColor(props.status)};
   font-size: 12px;
   font-weight: 500;
 `;

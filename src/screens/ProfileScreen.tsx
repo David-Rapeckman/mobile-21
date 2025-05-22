@@ -3,18 +3,22 @@ import styled from 'styled-components/native';
 import { Button } from 'react-native-paper';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../types/navigation';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { ViewStyle } from 'react-native';
+import type { RootStackParamList } from '../types/navigation';
 import theme from '../styles/theme';
-import Header from '../components/Header';
 
-type ProfileScreenProps = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
+type ProfileScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
+
+interface RoleBadgeProps {
+  role: string;
+}
 
 const ProfileScreen: React.FC = () => {
   const { user, signOut } = useAuth();
-  const navigation = useNavigation<ProfileScreenProps>();
+  const navigation = useNavigation<ProfileScreenNavigationProp>();
 
-  const getRoleText = (role: string) => {
+  const getRoleText = (role: string): string => {
     switch (role) {
       case 'admin':
         return 'Administrador';
@@ -29,20 +33,22 @@ const ProfileScreen: React.FC = () => {
 
   return (
     <Container>
-      <Header />
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollContainer contentContainerStyle={styles.scrollContent}>
+        <HeaderPlaceholder />
+
         <Title>Meu Perfil</Title>
 
         <ProfileCard>
-          <Avatar source={{ uri: user?.image || 'https://via.placeholder.com/150' }} />
-          <Name>{user?.name}</Name>
-          <Email>{user?.email}</Email>
-          <RoleBadge role={user?.role || ''}>
-            <RoleText>{getRoleText(user?.role || '')}</RoleText>
+          <Avatar source={{ uri: user?.image ?? 'https://via.placeholder.com/150' }} />
+          <Name>{user?.name ?? 'Usuário'}</Name>
+          <Email>{user?.email ?? 'email@exemplo.com'}</Email>
+
+          <RoleBadge role={user?.role ?? 'unknown'}>
+            <RoleText>{getRoleText(user?.role ?? '')}</RoleText>
           </RoleBadge>
 
-          {user?.role === 'doctor' && (
-            <SpecialtyText>Especialidade: {user?.specialty}</SpecialtyText>
+          {user?.role === 'doctor' && user.specialty && (
+            <SpecialtyText>Especialidade: {user.specialty}</SpecialtyText>
           )}
         </ProfileCard>
 
@@ -51,6 +57,7 @@ const ProfileScreen: React.FC = () => {
           onPress={() => navigation.goBack()}
           style={styles.button}
           contentStyle={styles.buttonContent}
+          accessibilityLabel="Voltar"
         >
           Voltar
         </Button>
@@ -60,21 +67,27 @@ const ProfileScreen: React.FC = () => {
           onPress={signOut}
           style={[styles.button, styles.logoutButton]}
           contentStyle={styles.buttonContent}
+          accessibilityLabel="Sair"
         >
           Sair
         </Button>
-      </ScrollView>
+      </ScrollContainer>
     </Container>
   );
 };
 
-const styles = {
+const styles: {
+  scrollContent: ViewStyle;
+  button: ViewStyle;
+  buttonContent: ViewStyle;
+  logoutButton: ViewStyle;
+} = {
   scrollContent: {
     padding: 20,
   },
   button: {
     marginBottom: 20,
-    width: '100%',
+    width: '100%' as `${number}%`,
   },
   buttonContent: {
     paddingVertical: 12,
@@ -89,8 +102,12 @@ const Container = styled.View`
   background-color: ${theme.colors.background};
 `;
 
-const ScrollView = styled.ScrollView`
+const ScrollContainer = styled.ScrollView`
   flex: 1;
+`;
+
+const HeaderPlaceholder = styled.View`
+  height: 60px;
 `;
 
 const Title = styled.Text`
@@ -131,15 +148,18 @@ const Email = styled.Text`
   margin-bottom: 8px;
 `;
 
-const RoleBadge = styled.View<{ role: string }>`
-  background-color: ${(props) => {
+// Aqui a correção: tipagem explícita do props
+const RoleBadge = styled.View<RoleBadgeProps>`
+  background-color: ${(props: RoleBadgeProps) => {
     switch (props.role) {
       case 'admin':
         return theme.colors.primary + '20';
       case 'doctor':
         return theme.colors.success + '20';
-      default:
+      case 'patient':
         return theme.colors.secondary + '20';
+      default:
+        return theme.colors.warning + '20';
     }
   }};
   padding: 4px 12px;

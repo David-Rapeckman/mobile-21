@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import styled from 'styled-components/native';
 import { ScrollView, ViewStyle, TextStyle } from 'react-native';
-import { Button, Text } from 'react-native-paper';
+import { Button } from 'react-native-paper';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -9,7 +10,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList } from '../types/navigation';
 import theme from '../styles/theme';
 import Header from '../components/Header';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type UserManagementScreenProps = NativeStackNavigationProp<
   RootStackParamList,
@@ -24,7 +24,7 @@ interface User {
 }
 
 interface StyledProps {
-  role: string;
+  role: 'admin' | 'doctor' | 'patient' | '';
 }
 
 const UserManagementScreen: React.FC = () => {
@@ -50,6 +50,12 @@ const UserManagementScreen: React.FC = () => {
     }
   }, [user?.id]);
 
+  useFocusEffect(
+    useCallback(() => {
+      loadUsers();
+    }, [loadUsers])
+  );
+
   const handleDeleteUser = async (userId: string) => {
     try {
       const storedUsers = await AsyncStorage.getItem('@MedicalApp:users');
@@ -60,15 +66,9 @@ const UserManagementScreen: React.FC = () => {
         loadUsers();
       }
     } catch {
-      // Handle error silently or log
+      // Opcional: tratar erro
     }
   };
-
-  useFocusEffect(
-    useCallback(() => {
-      loadUsers();
-    }, [loadUsers])
-  );
 
   const getRoleText = (role: string) => {
     switch (role) {
@@ -109,8 +109,8 @@ const UserManagementScreen: React.FC = () => {
             <UserCard key={user.id}>
               <UserName style={styles.userName}>{user.name}</UserName>
               <UserEmail style={styles.userEmail}>{user.email}</UserEmail>
-              <RoleBadge role={user.role}>
-                <RoleText role={user.role}>{getRoleText(user.role)}</RoleText>
+              <RoleBadge role={user.role || ''}>
+                <RoleText role={user.role || ''}>{getRoleText(user.role)}</RoleText>
               </RoleBadge>
               <ButtonContainer>
                 <Button
@@ -155,11 +155,11 @@ const styles = {
   },
   button: {
     marginBottom: 20,
-    width: '100%',
+    width: '100%' as `${number}%`, // Corrigido para string template literal
   } as ViewStyle,
   backButton: {
     marginTop: 10,
-    width: '100%',
+    width: '100%' as `${number}%`, // Corrigido para string template literal
     backgroundColor: theme.colors.secondary,
   } as ViewStyle,
   buttonContent: {
@@ -167,7 +167,7 @@ const styles = {
   } as ViewStyle,
   actionButton: {
     marginTop: 8,
-    width: '48%',
+    width: '48%' as `${number}%`, // Corrigido para string template literal
   } as ViewStyle,
   editButton: {
     backgroundColor: theme.colors.primary,
@@ -227,7 +227,7 @@ const EmptyText = styled.Text`
 `;
 
 const RoleBadge = styled.View<StyledProps>`
-  background-color: ${(props) => {
+  background-color: ${(props: StyledProps) => {
     switch (props.role) {
       case 'admin':
         return theme.colors.primary + '20';
@@ -244,7 +244,7 @@ const RoleBadge = styled.View<StyledProps>`
 `;
 
 const RoleText = styled.Text<StyledProps>`
-  color: ${(props) => {
+  color: ${(props: StyledProps) => {
     switch (props.role) {
       case 'admin':
         return theme.colors.primary;

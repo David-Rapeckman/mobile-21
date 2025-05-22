@@ -1,7 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import styled from 'styled-components/native';
-import { FlatList, RefreshControl, TouchableOpacity, ListRenderItemInfo } from 'react-native';
-import { Button, Icon } from 'react-native-paper';
+import {
+  FlatList,
+  RefreshControl,
+  TouchableOpacity,
+  ListRenderItemInfo,
+} from 'react-native';
+import { Button } from 'react-native-paper';
 import { FontAwesome } from '@expo/vector-icons';
 import { HeaderContainer, HeaderTitle } from '../components/Header';
 import theme from '../styles/theme';
@@ -37,11 +42,15 @@ const doctors: Doctor[] = [
   },
 ];
 
+interface StatusProps {
+  status: 'pending' | 'confirmed' | 'cancelled';
+}
+
 const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
-  const loadAppointments = async () => {
+  const loadAppointments = useCallback(async () => {
     try {
       const stored = await AsyncStorage.getItem('appointments');
       if (stored) setAppointments(JSON.parse(stored));
@@ -49,51 +58,56 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     } catch {
       setAppointments([]);
     }
-  };
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
       loadAppointments();
-    }, [])
+    }, [loadAppointments])
   );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadAppointments();
     setRefreshing(false);
-  }, []);
+  }, [loadAppointments]);
 
   const getDoctorInfo = (doctorId: string): Doctor | undefined =>
     doctors.find((d) => d.id === doctorId);
 
-  // Corrigindo tipo explícito do parâmetro item para evitar 'any'
-  const renderAppointment = ({ item }: ListRenderItemInfo<Appointment>) => {
+  // Corrigido: tipagem explícita do parâmetro para ListRenderItemInfo<Appointment>
+  const renderAppointment = (info: ListRenderItemInfo<Appointment>) => {
+    const { item } = info;
     const doctor = getDoctorInfo(item.doctorId);
 
     return (
       <AppointmentCard>
-        <DoctorImage source={{ uri: doctor?.image || 'https://via.placeholder.com/60' }} />
+        <DoctorImage
+          source={{ uri: doctor?.image || 'https://via.placeholder.com/60' }}
+          resizeMode="cover"
+        />
         <InfoContainer>
           <DoctorName>{doctor?.name || 'Médico não encontrado'}</DoctorName>
           <DoctorSpecialty>{doctor?.specialty || 'Especialidade não encontrada'}</DoctorSpecialty>
           <DateTime>{new Date(item.date).toLocaleDateString()} - {item.time}</DateTime>
-          <Description>{item.description}</Description>
+          <Description>{item.description || ''}</Description>
           <Status status={item.status}>
             {item.status === 'pending' ? 'Pendente' : 'Confirmado'}
           </Status>
           <ActionButtons>
-            <ActionButton
-              onPress={() => navigation.navigate('UserManagement')} 
-              // Alterado para rota válida, pois 'EditAppointment' não está declarada
+            <TouchableOpacity
+              onPress={() => navigation.navigate('UserManagement')}
+              style={{ marginRight: 10 }}
+              accessibilityLabel={`Editar consulta ${item.id}`}
             >
-              <Icon icon="pencil" size={20} color={theme.colors.primary} />
-            </ActionButton>
-            <ActionButton
-              onPress={() => navigation.navigate('UserManagement')} 
-              // Alterado para rota válida, pois 'DeleteAppointment' não está declarada
+              <FontAwesome name="pencil" size={20} color={theme.colors.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('UserManagement')}
+              accessibilityLabel={`Excluir consulta ${item.id}`}
             >
-              <Icon icon="delete" size={20} color={theme.colors.error} />
-            </ActionButton>
+              <FontAwesome name="trash" size={20} color={theme.colors.error} />
+            </TouchableOpacity>
           </ActionButtons>
         </InfoContainer>
       </AppointmentCard>
@@ -197,13 +211,13 @@ const DateTime = styled.Text`
 const Description = styled.Text`
   font-size: ${theme.typography.body.fontSize}px;
   color: ${theme.colors.text};
-  opacity: 0.8;
+  opacity: 0.81;
   margin-top: 4px;
 `;
 
-const Status = styled.Text<{ status: string }>`
+const Status = styled.Text<{ status: StatusProps['status'] }>`
   font-size: ${theme.typography.body.fontSize}px;
-  color: ${(props: { status: string }) =>
+  color: ${(props: { status: StatusProps['status'] }) =>
     props.status === 'pending' ? theme.colors.error : theme.colors.success};
   margin-top: 4px;
   font-weight: bold;
@@ -213,11 +227,6 @@ const ActionButtons = styled.View`
   flex-direction: row;
   justify-content: flex-end;
   margin-top: ${theme.spacing.small}px;
-`;
-
-const ActionButton = styled(TouchableOpacity)`
-  padding: ${theme.spacing.small}px;
-  margin-left: ${theme.spacing.small}px;
 `;
 
 const EmptyText = styled.Text`

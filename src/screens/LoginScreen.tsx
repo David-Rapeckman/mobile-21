@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
-import { Input, Button } from 'react-native-paper';
+import { TextInput, Button } from 'react-native-paper';
 import { useAuth } from '../contexts/AuthContext';
 import theme from '../styles/theme';
 import { useNavigation } from '@react-navigation/native';
@@ -33,7 +33,7 @@ const LoginScreen: React.FC = () => {
     <View style={styles.container}>
       <Text style={styles.title}>Login</Text>
 
-      <Input
+      <TextInput
         label="Email"
         mode="outlined"
         value={email}
@@ -43,7 +43,7 @@ const LoginScreen: React.FC = () => {
         style={styles.input}
       />
 
-      <Input
+      <TextInput
         label="Senha"
         mode="outlined"
         value={password}
